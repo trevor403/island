@@ -1,7 +1,7 @@
 var http = require("http"),
 	port = process.argv[2] || 8888;
 
-var verbPut = function(data) {
+var verbPut = function(res, d) {
 	response.writeHead(200);
 	response.write('Hello', "binary");
 	response.end();
@@ -13,7 +13,7 @@ var verbGet = function() {
 	response.end();
 };
 
-var verbDelete = function(data) {
+var verbDelete = function(res, d) {
 	response.writeHead(200);
 	response.write('Hello', "binary");
 	response.end();
@@ -33,6 +33,12 @@ var isValid = function(dict) {
 	return 'x' in dict && 'y' in dict;
 }
 
+var throwError = function(res, err) {
+	res.writeHead(500);
+	res.write(err, "binary");
+	res.end();
+}
+
 http.createServer(function(request, response) {
 
 	if (request.method == "PUT" || request.method == "DELETE") {
@@ -42,17 +48,18 @@ http.createServer(function(request, response) {
 		});
 	
 		request.on('end', function () {
-			console.log(body);
 			var dict = parseQuery(body);
-			console.log(dict);
+			if (!isValid(dict)) {
+				throwError(response, 'Invalid params');
+			} else {
+				if (request.method == "PUT") verbPut(response, dict);
+				if (request.method == "DELETE") verbDelete(response, dict);
+			}
 		});
 	} else if (request.method == "GET") {
 		console.log('GET request');
 	} else {
-		//error
-		response.writeHead(500);
-		response.write('Hello', "binary");
-		response.end();
+		throwError(response, 'Invalid method');
 	}
 
 
